@@ -203,7 +203,7 @@
 ### Dark Mode / Title Bar
 **Given** Windows platform  
 **When** `DarkTitleBarEventFilter` active  
-**Then** applies dark title bar styling on window activation events  
+**Then** applies dark title bar styling on `QEvent.Type.Show` events  
 **Source**: `gui.py:99-113`
 
 ### InputBox States
@@ -241,7 +241,7 @@ All cross-thread communication via Qt signals:
 - `progress(int, str)` — progress bar update
 - `finished(bool, str)` — conversion complete
 - `log_signal(str)` — log message
-- `ShowWarningSignalEmitter.warning_signal(str, str)` — thread-safe warning dialog
+- `ShowWarningSignalEmitter.show_warning_signal(str, str)` — thread-safe warning dialog
 
 **Source**: `gui.py:115-128`, `conversion.py`
 

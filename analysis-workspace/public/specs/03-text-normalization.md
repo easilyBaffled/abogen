@@ -31,7 +31,7 @@
 
 ### Configuration
 
-#### ApostropheConfig (frozen dataclass)
+#### ApostropheConfig (mutable dataclass)
 **Given** normalization settings  
 **When** constructing config  
 **Then** controls all normalization behaviors:
@@ -64,7 +64,7 @@
 ### Mode: "spacy" (default)
 **Given** `normalization_apostrophe_mode = "spacy"`  
 **When** processing text  
-**Then** uses `resolve_ambiguous_contractions()` for context-dependent disambiguation of 'd/'s, then rule-based `normalize_apostrophes()` for all other contractions  
+**Then** calls `normalize_apostrophes()` which internally invokes `resolve_ambiguous_contractions()` for context-dependent disambiguation of 'd/'s before rule-based expansion  
 **Source**: `kokoro_text_normalization.py:2352-2353`
 
 ### Mode: "llm"
@@ -86,7 +86,7 @@
 ### Lexicon-Based Contractions
 **Given** known contraction in `CONTRACTION_LEXICON`  
 **When** token matches (case-insensitive)  
-**Then** expands per category policy: can't→"can not", won't→"will not", don't→"do not", etc. (18 entries)  
+**Then** expands per category policy: can't→"can not", won't→"will not", don't→"do not", etc. (19 entries)  
 **Source**: `kokoro_text_normalization.py:98-118`
 
 ### Suffix Contractions
@@ -206,8 +206,8 @@
 **Then** ordinal if: preceded by Title-cased name(s) possibly with name titles (King, Pope, etc.); value ≤ 50 with title, ≤ 20 without; outputs "the [ordinal]"  
 **Source**: `kokoro_text_normalization.py:909-952`
 
-### Cardinal Context Words (37 entries)
-act, appendix, article, battle, book, campaign, chapter, episode, film, final, fantasy, game, installment, lesson, level, mission, movement, opus, operation, page, part, phase, psalm, round, scene, season, section, series, song, super, bowl, stage, step, track, volume, war, world  
+### Cardinal Context Words (38 entries)
+act, appendix, article, battle, book, campaign, chapter, episode, film, final, fantasy, game, installment, lesson, level, mission, movement, opus, operation, page, part, phase, psalm, round, scene, season, section, series, song, super, bowl, stage, step, track, volume, war, world, "world war" (38 entries)  
 **Source**: `kokoro_text_normalization.py:732-771`
 
 ### Compound Patterns
@@ -238,8 +238,8 @@ act, appendix, article, battle, book, campaign, chapter, episode, film, final, f
 **Then** converts to sentence case while preserving acronyms from allowlist  
 **Source**: `kokoro_text_normalization.py:1082-1172`
 
-### Acronym Allowlist (25 entries)
-AI, API, CPU, DIY, GPU, HTML, HTTP, HTTPS, ID, JSON, MP3, MP4, M4B, NASA, OCR, PDF, SQL, TV, TTS, UK, UN, UFO, OK, URL, USA, US, VR  
+### Acronym Allowlist (27 entries)
+AI, API, CPU, DIY, GPU, HTML, HTTP, HTTPS, ID, JSON, MP3, MP4, M4B, NASA, OCR, PDF, SQL, TV, TTS, UK, UN, UFO, OK, URL, USA, US, VR (27 entries)  
 **Source**: `kokoro_text_normalization.py:1023-1051`
 
 ### Roman Numeral Preservation
@@ -336,11 +336,11 @@ Only at end of clause (followed by `,`, `.`, `!`, `?`, or EOL)
 ## Normalization Settings
 
 ### Settings Resolution Priority
-1. Environment variables (ABOGEN_LLM_BASE_URL, etc.)
-2. config.json values
+1. config.json values (from `source` mapping)
+2. Environment variables (ABOGEN_LLM_BASE_URL, etc. via `_environment_defaults()`)
 3. `_SETTINGS_DEFAULTS` hardcoded defaults
 
-**Source**: `normalization_settings.py:68-75, 86-100`
+**Source**: `normalization_settings.py:140-159`
 
 ### Sample Texts for Preview
 4 samples: apostrophes, numbers, titles, punctuation — used in UI settings preview  
@@ -401,7 +401,7 @@ Module-level state is all immutable (compiled regex, frozen dicts, constants). N
 4. **Cultural names never modified**: O'Brien, D'Angelo always protected when `protect_cultural_names=True`
 5. **Contractions category-gated**: Each expansion requires its category enabled
 6. **Unicode apostrophes normalized early**: Before any matching occurs
-7. **Spacing cleaned once**: `_cleanup_spacing()` applied after all transformations
+7. **Spacing cleaned within mode branch**: `_cleanup_spacing()` applied inside each mode handler, before title/terminal/caps/phoneme post-processing
 8. **Roman numeral round-trip validation**: Only valid numerals converted
 9. **Threshold gating for batch titles**: Roman prefix conversion only if > 50% prevalence
 10. **LLM errors propagate**: Not silently swallowed; caller decides recovery

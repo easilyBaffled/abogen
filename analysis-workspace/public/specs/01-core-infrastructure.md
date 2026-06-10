@@ -53,11 +53,11 @@
 
 ### utils.py — GPU Detection
 
-#### get_gpu_acceleration() -> str
-**Given** system hardware  
+#### get_gpu_acceleration(enabled: bool) -> Tuple[str, bool]
+**Given** system hardware and enabled flag  
 **When** called  
-**Then** returns one of: `"cuda"` (NVIDIA), `"mps"` (macOS ARM), `"rocm"` (AMD), `"cpu"` (fallback)  
-**Source**: `utils.py:get_gpu_acceleration`
+**Then** returns (message_str, gpu_active_bool); checks MPS (macOS ARM) then CUDA; if `enabled=False` returns early with "GPU available but using CPU", False; no ROCm detection  
+**Source**: `utils.py:445`
 
 ### utils.py — Sleep Prevention
 
@@ -86,16 +86,16 @@
 #### create_process(cmd, **kwargs) -> subprocess.Popen
 **Given** a command list  
 **When** called  
-**Then** creates subprocess with platform-appropriate flags (Windows: CREATE_NO_WINDOW); pipes stderr  
-**Source**: `utils.py:create_process`
+**Then** creates subprocess with platform-appropriate flags (Windows: CREATE_NO_WINDOW); merges stderr into stdout via `stderr=subprocess.STDOUT`  
+**Source**: `utils.py:346`
 
 ### utils.py — Pipeline Loading
 
-#### LoadPipelineThread(Thread)
+#### LoadPipelineThread(threading.Thread)
 **Given** need for background model loading  
 **When** started  
-**Then** loads numpy + KPipeline in background thread; emits `finished` signal with pipeline instance  
-**Source**: `utils.py:LoadPipelineThread`
+**Then** loads numpy + KPipeline in background thread; invokes `callback(np_module, kpipeline_class, error)` on completion  
+**Source**: `utils.py:539-549`
 
 ---
 
@@ -152,7 +152,7 @@
 ## State Management
 
 ### Mutable Global State
-- `_sleep_process`: subprocess handle for sleep prevention
+- `_sleep_procs`: dict of subprocess handles keyed by platform name ("Darwin", "Linux")
 - `_pipeline_cache`: dict for LoadPipelineThread results
 - Directory resolution functions use `@lru_cache(maxsize=1)`
 
@@ -182,15 +182,15 @@
 **Source**: `utils.py:load_config`
 
 ### GPU Detection Failure
-**Given** gpustat/torch unavailable or error  
-**When** `get_gpu_acceleration()` catches exception  
-**Then** falls back to `"cpu"`  
-**Source**: `utils.py:get_gpu_acceleration`
+**Given** torch unavailable or error  
+**When** `get_gpu_acceleration()` catches ImportError/exception  
+**Then** returns ("No compatible GPU device found...", False) — falls back to CPU  
+**Source**: `utils.py:445`
 
 ### Sleep Prevention Failure
 **Given** caffeinate/systemd-inhibit not available  
 **When** subprocess fails  
-**Then** silently continues (no sleep prevention)  
+**Then** prints diagnostic message and continues without sleep prevention  
 **Source**: `utils.py:prevent_sleep_start`
 
 ### Encoding Detection Failure
@@ -210,8 +210,8 @@
 | `get_user_settings_dir()` | Yes | `@lru_cache` + immutable result |
 | `get_user_cache_root()` | Yes | `@lru_cache` + immutable result |
 | `get_gpu_acceleration()` | Yes | Stateless computation |
-| `prevent_sleep_start/end` | No | Mutates `_sleep_process` global |
-| `LoadPipelineThread` | Yes | QThread with signal communication |
+| `prevent_sleep_start/end` | No | Mutates `_sleep_procs` global dict |
+| `LoadPipelineThread` | Yes | stdlib Thread with callback |
 
 ---
 
@@ -219,7 +219,7 @@
 
 1. **Directory resolution cached**: Once resolved, directory paths never change within process lifetime
 2. **Config always returns dict**: `load_config()` never raises, always returns dict (empty on error)
-3. **GPU detection never raises**: Always returns one of 4 valid strings
+3. **GPU detection never raises**: Always returns (str, bool) tuple
 4. **HF env vars set before model loading**: `get_user_cache_root()` side effects guarantee HF paths configured
 5. **Sleep prevention paired**: `prevent_sleep_start()` must be paired with `prevent_sleep_end()` (atexit handler provides safety net)
 6. **Constants immutable**: All values in `constants.py` are module-level and never mutated

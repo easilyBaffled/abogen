@@ -108,10 +108,10 @@
 **Source**: `jobs.py:69-70`
 
 ### POST /jobs/<job_id>/retry
-**Given** FAILED or CANCELLED job  
+**Given** COMPLETED, FAILED, or CANCELLED job  
 **When** retry requested  
-**Then** re-enqueues with same parameters; redirects to new job  
-**Source**: `jobs.py:76-77`
+**Then** re-enqueues with same parameters; redirects to new job if created, otherwise redirects back to original job  
+**Source**: `jobs.py:76-82`
 
 ### POST /jobs/<job_id>/audiobookshelf
 **Given** COMPLETED job  
@@ -348,8 +348,8 @@
 ### Job Not Found
 **Given** invalid job_id  
 **When** any job route accessed  
-**Then** returns 404 response  
-**Source**: `jobs.py`
+**Then** returns 200 with friendly `job_not_found.html` page (not 404 — avoids confusion from stale browser tabs)  
+**Source**: `jobs.py:37-38`
 
 ### File Upload Validation
 **Given** uploaded file  

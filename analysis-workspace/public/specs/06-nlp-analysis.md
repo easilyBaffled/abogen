@@ -176,8 +176,8 @@
 ### Deduplication
 **Given** same heteronym in same sentence appears multiple times  
 **When** processing chapters  
-**Then** uses `seen` set of (token, sentence_hash) tuples to skip duplicates  
-**Source**: `heteronym_overrides.py:242`
+**Then** uses `seen` set of (token_key, sentence) tuples to skip duplicates; key is the lowercase token, value is the full sentence string  
+**Source**: `heteronym_overrides.py:242, 266-269`
 
 ### Previous Choice Preservation
 **Given** `existing` parameter with prior choices  
@@ -278,7 +278,7 @@
 ### Language-Dependent Behavior
 **Given** language code  
 **When** NLP analysis runs  
-**Then** heteronyms are English-only; entity extraction works with any supported spaCy model; speaker analysis is language-agnostic (regex patterns are English-centric)
+**Then** heteronyms are English-only; entity extraction works with any supported spaCy model; speaker analysis uses English regex patterns — runs on any input but produces meaningful results only for English text
 
 ---
 

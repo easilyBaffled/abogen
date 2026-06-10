@@ -15,10 +15,10 @@
 **Source**: `service.py:955-960`
 
 ### Service Construction Order
-**Given** `build_service(runner, output_root, uploads_root)` is called  
+**Given** `build_service(runner, *, output_root=None, uploads_root=None)` is called  
 **When** instantiated  
 **Then** performs: (1) initialize empty `_jobs` dict and `_queue` list, (2) create RLock + stop/wake Events, (3) determine state file path, (4) create output/upload/state directories, (5) bootstrap voice cache, (6) load persisted state  
-**Source**: `service.py:581-604`
+**Source**: `service.py:1606, 581-604`
 
 ---
 
