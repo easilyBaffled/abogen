@@ -142,10 +142,10 @@
 - Config: platformdirs Windows paths
 
 ### Linux
-- GPU: CUDA (NVIDIA) or ROCm (AMD)
+- GPU: CUDA (NVIDIA) only — no ROCm detection in `get_gpu_acceleration()`
 - Sleep: `systemd-inhibit` subprocess
 - Docker: `/data` directory detection for container paths
-- Env: `MIOPEN_*` vars for ROCm tuning
+- Env: `MIOPEN_FIND_MODE` set via `main.py` (for ROCm users who configure externally)
 
 ---
 
